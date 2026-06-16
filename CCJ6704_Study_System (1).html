@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCJ6704 Adaptive Study System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family:'Inter',sans-serif; background:#0f1117; color:#e8e8f0; min-height:100vh; padding:24px 16px 60px; display:flex; flex-direction:column; align-items:center; }
+  header { text-align:center; margin-bottom:18px; max-width:760px; }
+  header h1 { font-family:'Playfair Display',serif; font-size:clamp(1.4rem,4vw,2rem); color:#c8b8ff; margin-bottom:4px; }
+  header p { font-size:.8rem; color:#7a7a9a; text-transform:uppercase; letter-spacing:.5px; }
+  .container { width:100%; max-width:760px; }
+  .tabs { display:flex; gap:8px; margin-bottom:20px; justify-content:center; flex-wrap:wrap; }
+  .tab { padding:9px 18px; border-radius:10px; border:1px solid #2a2a3e; background:#1a1a2e; color:#9090b0; font-size:.85rem; font-weight:600; cursor:pointer; transition:all .15s; font-family:'Inter',sans-serif; }
+  .tab.active { background:#3a2a6e; border-color:#7050cf; color:#c8b8ff; }
+  .tab:hover { border-color:#7050cf; }
+  .panel { display:none; } .panel.active { display:block; }
+  .dash-card { background:linear-gradient(135deg,#1e1e30,#16162a); border:1px solid #2e2e4a; border-radius:14px; padding:22px; margin-bottom:16px; }
+  .dash-card h2 { font-family:'Playfair Display',serif; font-size:1.2rem; color:#c8b8ff; margin-bottom:14px; }
+  .mastery-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .mastery-name { width:54px; font-size:.82rem; color:#b0b0d0; font-weight:600; }
+  .mastery-track { flex:1; height:20px; background:#2a2a3e; border-radius:5px; overflow:hidden; }
+  .mastery-fill { height:100%; border-radius:5px; transition:width .6s; }
+  .mastery-score { width:64px; font-size:.76rem; text-align:right; color:#9090b0; }
+  .empty-note { color:#7a7a9a; font-size:.86rem; line-height:1.6; }
+  .stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+  .stat-box { background:#16162a; border:1px solid #2a2a3e; border-radius:10px; padding:14px; text-align:center; }
+  .stat-box .num { font-family:'Playfair Display',serif; font-size:1.8rem; color:#c8b8ff; }
+  .stat-box .lbl { font-size:.72rem; color:#7a7a9a; text-transform:uppercase; letter-spacing:.5px; margin-top:2px; }
+  .btn { padding:13px 28px; border-radius:11px; border:none; font-family:'Inter',sans-serif; font-size:.9rem; font-weight:700; cursor:pointer; transition:all .15s; }
+  .btn-primary { background:#7050cf; color:#fff; } .btn-primary:hover { background:#8060df; transform:translateY(-1px); }
+  .btn-primary:disabled { background:#3a2a5a; color:#7070a0; cursor:default; transform:none; }
+  .btn-secondary { background:#1e1e30; color:#9090b0; border:1px solid #2e2e4a; } .btn-secondary:hover { border-color:#7050cf; color:#c8b8ff; }
+  .btn-block { width:100%; margin-bottom:10px; } .btn-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .mode-row { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .mode-opt { flex:1; min-width:200px; padding:14px; border-radius:11px; border:1px solid #2e2e4a; background:#16162a; cursor:pointer; transition:all .15s; }
+  .mode-opt.selected { border-color:#7050cf; background:#241a45; }
+  .mode-opt h3 { font-size:.92rem; color:#e8e8f0; margin-bottom:4px; } .mode-opt p { font-size:.76rem; color:#8a8aaa; line-height:1.45; }
+  .len-row { display:flex; gap:8px; margin-bottom:18px; }
+  .len-btn { flex:1; padding:10px; border-radius:9px; border:1px solid #2e2e4a; background:#16162a; color:#9090b0; font-weight:600; font-size:.85rem; cursor:pointer; font-family:'Inter',sans-serif; }
+  .len-btn.selected { border-color:#7050cf; background:#241a45; color:#c8b8ff; }
+  .sticky-bar { position:sticky; top:0; z-index:10; background:#0f1117; padding:10px 0 14px; display:flex; align-items:center; gap:12px; }
+  .pbar-wrap { flex:1; height:4px; background:#2a2a3e; border-radius:2px; overflow:hidden; }
+  .pbar { height:100%; background:linear-gradient(90deg,#7050cf,#c8b8ff); width:0%; transition:width .3s; }
+  .plabel { font-size:.76rem; color:#7a7a9a; min-width:92px; text-align:right; }
+  .q-card { background:linear-gradient(135deg,#1e1e30,#16162a); border:1px solid #2e2e4a; border-radius:14px; padding:20px; margin-bottom:14px; }
+  .q-meta { display:flex; justify-content:space-between; margin-bottom:9px; }
+  .q-num { font-size:.72rem; color:#7050cf; font-weight:700; letter-spacing:1px; }
+  .q-ch { font-size:.68rem; color:#555575; text-transform:uppercase; letter-spacing:1px; }
+  .q-text { font-size:.98rem; line-height:1.5; margin-bottom:14px; }
+  .opt { display:block; width:100%; text-align:left; padding:12px 14px; margin-bottom:8px; background:transparent; border:1px solid #2e2e4a; border-radius:9px; color:#c0c0d8; font-family:'Inter',sans-serif; font-size:.88rem; cursor:pointer; transition:all .12s; line-height:1.4; }
+  .opt:hover { border-color:#7050cf; } .opt.selected { background:#2a1f55; border-color:#7050cf; color:#e8e8f0; }
+  .opt.correct { background:#14331f; border-color:#2a7a4a; color:#8fe0ad; }
+  .opt.wrong { background:#331414; border-color:#7a2a2a; color:#e09090; }
+  .opt .ltr { font-weight:700; color:#8060cf; margin-right:8px; }
+  .rationale { margin-top:10px; padding:11px 14px; border-radius:9px; background:#1a1a2e; border-left:3px solid #7050cf; font-size:.8rem; line-height:1.55; color:#b0b0d0; }
+  .results { background:linear-gradient(135deg,#1a1030,#12102a); border:1px solid #4a3a7a; border-radius:16px; padding:26px 22px; margin-bottom:20px; display:none; }
+  .results.show { display:block; }
+  .score-big { font-family:'Playfair Display',serif; font-size:2.8rem; text-align:center; color:#c8b8ff; }
+  .score-sub { text-align:center; color:#9090b0; font-size:.88rem; margin-bottom:20px; }
+  .verdict { margin-top:16px; padding:14px 16px; border-radius:10px; background:#1a1a2e; font-size:.85rem; line-height:1.6; color:#c0c0d8; } .verdict strong { color:#c8b8ff; }
+  .warn { color:#cf8060; font-size:.8rem; text-align:center; margin-top:12px; display:none; } .warn.show { display:block; }
+  .fc-meta { text-align:center; color:#7a7a9a; font-size:.82rem; margin-bottom:14px; }
+  .card-wrap { perspective:1200px; cursor:pointer; margin-bottom:18px; }
+  .card { width:100%; min-height:240px; position:relative; transform-style:preserve-3d; transition:transform .5s cubic-bezier(.4,0,.2,1); }
+  .card.flipped { transform:rotateX(180deg); }
+  .card-face { position:absolute; width:100%; min-height:240px; backface-visibility:hidden; border-radius:16px; padding:30px 26px; display:flex; flex-direction:column; justify-content:center; }
+  .card-front { background:linear-gradient(135deg,#1e1e30,#16162a); border:1px solid #2e2e4a; }
+  .card-back { background:linear-gradient(135deg,#1a1030,#12102a); border:1px solid #4a3a7a; transform:rotateX(180deg); }
+  .card-ch { font-size:.7rem; text-transform:uppercase; letter-spacing:1.5px; color:#7050cf; font-weight:600; margin-bottom:10px; }
+  .card-lbl { font-size:.7rem; color:#7a7a9a; text-transform:uppercase; letter-spacing:1px; margin-bottom:9px; }
+  .card-front .card-text { font-family:'Playfair Display',serif; font-size:clamp(1.05rem,3vw,1.35rem); line-height:1.5; }
+  .card-back .card-text { font-size:clamp(.86rem,2.5vw,.98rem); line-height:1.6; color:#d0d0e8; }
+  .flip-hint { font-size:.7rem; color:#4a4a6a; margin-top:14px; text-align:center; }
+  .fc-controls { display:flex; gap:10px; justify-content:center; }
+  .reset-link { text-align:center; margin-top:20px; }
+  .reset-link button { background:none; border:none; color:#5a5a7a; font-size:.78rem; cursor:pointer; text-decoration:underline; font-family:'Inter',sans-serif; }
+  .badge { display:inline-block; font-size:.62rem; background:#2a1f55; color:#a890e0; padding:2px 7px; border-radius:5px; letter-spacing:.5px; margin-left:6px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CCJ6704 Adaptive Study System</h1>
+  <p>Test → Diagnose → Target → Repeat</p>
+</header>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('dashboard',this)">📊 Dashboard</button>
+    <button class="tab" onclick="showTab('exam',this)">📝 Exam</button>
+    <button class="tab" onclick="showTab('flashcards',this)">🃏 Flashcards</button>
+  </div>
+
+  <div class="panel active" id="dashboard">
+    <div class="dash-card"><h2>Your Mastery by Chapter</h2><div id="masteryBars"></div></div>
+    <div class="dash-card"><h2>Stats</h2>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="num" id="examsTaken">0</div><div class="lbl">Exams Taken</div></div>
+        <div class="stat-box"><div class="num" id="avgScore">—</div><div class="lbl">Avg Score</div></div>
+        <div class="stat-box"><div class="num" id="cardsSeen">0</div><div class="lbl">Cards Studied</div></div>
+      </div>
+      <div id="recommendation" class="empty-note"></div>
+    </div>
+    <div class="reset-link"><button onclick="hardReset()">Reset all progress</button></div>
+  </div>
+
+  <div class="panel" id="exam">
+    <div id="examSetup">
+      <div class="dash-card">
+        <h2>Build Your Exam <span class="badge">QUESTIONS REPHRASE EACH TIME</span></h2>
+        <div class="mode-row">
+          <div class="mode-opt selected" id="modeEven" onclick="setMode('even')"><h3>⚖️ Even Coverage</h3><p>All 8 chapters equally — full diagnostic or general review.</p></div>
+          <div class="mode-opt" id="modeWeak" onclick="setMode('weak')"><h3>🎯 Target Weak Points</h3><p>Weights toward your lowest-scoring chapters. Take an exam first to unlock.</p></div>
+        </div>
+        <div style="font-size:.8rem;color:#7a7a9a;margin-bottom:8px;">Exam length:</div>
+        <div class="len-row">
+          <button class="len-btn selected" onclick="setLen(20,this)">20 Q</button>
+          <button class="len-btn" onclick="setLen(40,this)">40 Q</button>
+          <button class="len-btn" onclick="setLen(60,this)">60 Q</button>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="startExam()">Start Exam →</button>
+      </div>
+    </div>
+    <div id="examRun" style="display:none;">
+      <div class="sticky-bar"><div class="pbar-wrap"><div class="pbar" id="pbar"></div></div><div class="plabel" id="plabel">0 / 0</div></div>
+      <div id="results" class="results"></div>
+      <div id="quizBody"></div>
+      <div style="text-align:center;margin-top:8px;">
+        <button class="btn btn-primary" id="submitBtn" onclick="submitExam()" disabled>Submit Exam</button>
+        <div class="warn" id="warn">Answer all questions before submitting.</div>
+        <div class="btn-row" id="postExamBtns" style="display:none;justify-content:center;margin-top:16px;">
+          <button class="btn btn-secondary" onclick="reviewWeakCards()">🃏 Study My Weak Cards</button>
+          <button class="btn btn-primary" onclick="backToSetup()">↻ New Exam</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="flashcards">
+    <div class="fc-meta" id="fcMeta">All chapters</div>
+    <div class="card-wrap" onclick="flipCard()">
+      <div class="card" id="fcCard">
+        <div class="card-face card-front"><div class="card-ch" id="fcChF"></div><div class="card-lbl">QUESTION</div><div class="card-text" id="fcFront"></div><div class="flip-hint">Tap to flip</div></div>
+        <div class="card-face card-back"><div class="card-ch" id="fcChB"></div><div class="card-lbl">ANSWER</div><div class="card-text" id="fcBack"></div></div>
+      </div>
+    </div>
+    <div class="fc-controls"><button class="btn btn-secondary" onclick="prevCard()">← Prev</button><button class="btn btn-primary" onclick="nextCard()">Next →</button></div>
+    <div class="reset-link"><button onclick="loadAllCards()">Study all chapters</button></div>
+  </div>
+</div>
+
+<script>
+const CHAPTERS = ['Ch 1','Ch 2','Ch 3','Ch 4','Ch 5','Ch 6','Ch 7','Ch 8'];
+function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+/* ===== FLASHCARDS (static, from slides) ===== */
+const CARDS = [
+  {ch:"Ch 1",q:"What are research methods?",a:"The tools, techniques, and procedures researchers use to ask and answer questions."},
+  {ch:"Ch 1",q:"'Research' as a VERB means…",a:"To follow a logical process that uses concepts, principles, and techniques to produce knowledge."},
+  {ch:"Ch 1",q:"'Research' as a NOUN means…",a:"A collection of information that represents what we know about a particular topic."},
+  {ch:"Ch 1",q:"The 4 types of research by purpose",a:"Exploratory (new/emerging topics), Descriptive (describes trends), Explanatory (finds a cause), Evaluation (assesses programs/policies)."},
+  {ch:"Ch 1",q:"Pure vs. Applied research",a:"Pure (basic): expands knowledge/advances theory. Applied (action): addresses a specific problem."},
+  {ch:"Ch 1",q:"What is peer review?",a:"A collaborative process where knowledgeable researchers review another's work and recommend whether to publish; it enhances quality."},
+  {ch:"Ch 1",q:"The 4 alternatives to research",a:"Authority, Tradition/custom, Common sense, Media — all risky; no substitute for good research."},
+  {ch:"Ch 1",q:"What is 'best practices' research?",a:"Descriptions of programs/processes proven successful in multiple contexts; value depends on an organization's particular demands."},
+  {ch:"Ch 2",q:"The 3 characteristics of the research process",a:"Generally linear; internally cyclical (revisit steps); externally cyclical (findings spark new questions)."},
+  {ch:"Ch 2",q:"First three steps of the research process",a:"1) Ask a research question, 2) Conduct a literature review, 3) Refine the research question."},
+  {ch:"Ch 2",q:"What is a literature review?",a:"A summary of what previous researchers have learned about a topic; an ethical responsibility to locate, understand, and communicate it."},
+  {ch:"Ch 2",q:"What is pyramiding?",a:"Using bibliographies of articles you find to locate more sources; frequently-cited studies signal authoritative work."},
+  {ch:"Ch 2",q:"Conceptualization vs. Operationalization",a:"Conceptualization = defining the concepts. Operationalization = deciding how to actually measure them."},
+  {ch:"Ch 2",q:"What are a priori assumptions?",a:"Assumptions that establish what the data must reveal for a researcher to confirm the hypothesis."},
+  {ch:"Ch 2",q:"What does 'overreaching the data' mean?",a:"Interpreting findings to mean more than they actually do."},
+  {ch:"Ch 3",q:"How many ethical principles guide researchers?",a:"Seven (7) enduring ethical principles."},
+  {ch:"Ch 3",q:"Principle 1: Do No Harm",a:"Don't put anyone at risk of physical, psychological, or legal harm; develop contingencies or abandon harmful projects."},
+  {ch:"Ch 3",q:"Confidentiality vs. Anonymity",a:"Confidentiality: researcher knows identity but won't reveal it. Anonymity: researcher cannot know identity at all."},
+  {ch:"Ch 3",q:"Voluntary + Informed consent",a:"Voluntary = free to participate without threat. Informed = told what's expected and the risks involved."},
+  {ch:"Ch 3",q:"Vulnerable populations",a:"Individuals less able to manage their own affairs: children, the mentally ill, inmates. Require extra safeguards."},
+  {ch:"Ch 3",q:"Sponsorship bias vs. Suppression",a:"Sponsorship bias: sponsor influences design/interpretation for benefit. Suppression: sponsor hides unfavorable findings."},
+  {ch:"Ch 3",q:"4 forms of misrepresentation",a:"Misrepresentation (lying), Research fraud (fabricating data), Plagiarism (others' work as own), Deception (lending credibility to bad research)."},
+  {ch:"Ch 3",q:"Two levels of IRB review",a:"Expedited (little potential harm, e.g., anonymous survey); Full (substantial potential harm to subjects)."},
+  {ch:"Ch 4",q:"Trend vs. Panel vs. Cohort studies",a:"Trend: same data, different times, DIFFERENT samples of same population. Panel: SAME sample over time. Cohort: group sharing a characteristic/experience."},
+  {ch:"Ch 4",q:"Cross-sectional vs. Longitudinal",a:"Cross-sectional: data at one point in time. Longitudinal: data over an extended time frame."},
+  {ch:"Ch 4",q:"Deductive vs. Inductive reasoning",a:"Deductive: theory → data (general to specific). Inductive: data → theory (specific to general)."},
+  {ch:"Ch 4",q:"Quantitative vs. Qualitative research",a:"Quantitative: measures variables numerically, objective. Qualitative: examines meaning in natural settings, subjective."},
+  {ch:"Ch 4",q:"The 3 paradigms of research",a:"Positivist (empirical, causal), Interpretive (meaning of behavior), Critical (research not value-free; researcher bias)."},
+  {ch:"Ch 4",q:"Ecological fallacy vs. Reductionism",a:"Ecological fallacy: predicting INDIVIDUAL behavior from GROUP data. Reductionism: predicting GROUP behavior from an INDIVIDUAL."},
+  {ch:"Ch 4",q:"What is the unit of analysis?",a:"The 'what' or 'whom' from which data is collected: individual, group, organization, or nation."},
+  {ch:"Ch 5",q:"The 3 causal rules",a:"1) Temporal order (cause precedes effect), 2) Correlation (variables related), 3) Lack of plausible alternative explanations."},
+  {ch:"Ch 5",q:"What does 'spurious' mean?",a:"False. A spurious relationship is a falsely-proposed causal link, usually from failing a causal rule."},
+  {ch:"Ch 5",q:"Positive vs. Negative correlation",a:"Positive: variables move same direction. Negative (inverse): variables move opposite directions."},
+  {ch:"Ch 5",q:"Which causal rule is hardest to meet?",a:"Lack of plausible alternative explanations — eliminating all other reasonable causes."},
+  {ch:"Ch 6",q:"The 4 levels of measurement (NOIR)",a:"Nominal (labels), Ordinal (ranked), Interval (equal gaps, no true zero), Ratio (equal gaps + true zero)."},
+  {ch:"Ch 6",q:"Nominal level — define + example",a:"Names/labels with no logical order. Examples: race, ethnicity, gender."},
+  {ch:"Ch 6",q:"Ordinal level — define + example",a:"Ranked labels, but unequal distances between attributes. Example: risk categories (low/med/high)."},
+  {ch:"Ch 6",q:"Interval level — define + example",a:"Ranked with equal distances, but NO absolute zero. Example: education in years."},
+  {ch:"Ch 6",q:"Ratio level — define + example",a:"Ranked, equal distances, AND an absolute zero. Examples: income, temperature."},
+  {ch:"Ch 6",q:"Validity vs. Reliability",a:"Validity = accuracy (measures what it claims). Reliability = consistency (same result each time). Can be reliable but not valid."},
+  {ch:"Ch 6",q:"The 4 types of validity",a:"Face (makes sense), Criterion/predictive (matches a direct measure), Construct (relates to theoretically-linked variables), Content (covers every dimension)."},
+  {ch:"Ch 6",q:"The 4 types of reliability",a:"Test–retest (twice, same group), Inter-rater (multiple observers agree), Split half (two halves match), Concurrent (matches an accepted benchmark)."},
+  {ch:"Ch 7",q:"Independent vs. Dependent variable",a:"Independent = the cause (happens first). Dependent = the effect (changes as a result)."},
+  {ch:"Ch 7",q:"What is an intervening variable?",a:"Occurs between IV and DV; may change how, or even if, the IV affects the DV."},
+  {ch:"Ch 7",q:"Alternative (Ha) vs. Null (Ho) hypothesis",a:"Ha: alleges a plausible connection between variables. Ho: alleges NO connection — the exact opposite."},
+  {ch:"Ch 7",q:"Attributes must be…",a:"Exhaustive (all possibilities included) and mutually exclusive (pick one and only one)."},
+  {ch:"Ch 7",q:"The 4 criteria of a good research question",a:"Measurable, Unanswered, Feasible, Disinteresting (indifferent to outcome)."},
+  {ch:"Ch 8",q:"Population vs. Sample vs. Census",a:"Population: entire relevant set. Sample: a group within it. Census: collects from the ENTIRE population."},
+  {ch:"Ch 8",q:"What is the central limit theorem?",a:"Numerous samples from a population produce about the same, normally-distributed result; the scientific basis of sampling."},
+  {ch:"Ch 8",q:"Probability vs. Non-probability sampling",a:"Probability: random selection, allows prediction to population. Non-probability: no random selection, no prediction."},
+  {ch:"Ch 8",q:"Simple vs. Systematic random sampling",a:"Simple: random selection directly, equal/non-zero chance. Systematic: structured process, e.g., every 10th case."},
+  {ch:"Ch 8",q:"Stratified vs. Cluster sampling",a:"Stratified: create strata, randomly sample from each. Cluster: identify natural groupings, randomly select clusters then cases."},
+  {ch:"Ch 8",q:"Convenience vs. Snowball sampling",a:"Convenience: people at hand/available. Snowball: members refer other members (good for hidden populations)."},
+  {ch:"Ch 8",q:"Random sampling error vs. Selection bias",a:"Random sampling error: diff between sample and full-population results. Selection bias: process that systematically skews who's selected."},
+];
+
+/* ===== SCENARIO INGREDIENTS (swapped each render) ===== */
+const TOPICS=["recidivism","police use of force","juvenile delinquency","gang membership","domestic violence","drug court outcomes","officer burnout","reentry success","victimization","sentencing disparities"];
+const ROSTERS=["a list of parolees","an arrest log","a roster of inmates","a registry of probationers","a department's personnel file","a court docket","a list of registered offenders"];
+const PLACES=["a county jail","a metro police department","a state prison","a juvenile facility","a reentry program","a sheriff's office"];
+const GROUPS=["a gang","a cohort of parolees","a precinct","a cellblock","a class of cadets","a support group"];
+const POOLS={ levels:["Nominal","Ordinal","Interval","Ratio"], validity:["Face validity","Criterion (predictive) validity","Content validity","Construct validity"], reliability:["Test–retest reliability","Inter-rater reliability","Split half reliability","Concurrent reliability"], sampling:["Simple random sampling","Systematic random sampling","Stratified random sampling","Cluster sampling","Convenience sampling","Snowball sampling"], purposeType:["Descriptive research","Exploratory research","Explanatory research","Evaluation research"], alternatives:["Tradition or custom","Authority","Media","Common sense"], timeDim:["Trend study","Panel study","Cohort study","Cross-sectional study"] };
+
+/* ===== TEMPLATE GENERATORS ===== */
+function g_purpose(){ const v=pick([
+  {k:"Descriptive research",s:()=>`A researcher documents how rates of ${pick(TOPICS)} have changed across ${randInt(3,8)} years, simply describing the trend.`},
+  {k:"Exploratory research",s:()=>`Almost nothing has been published about a newly emerging form of ${pick(TOPICS)}, so a researcher studies it just to learn its basic features.`},
+  {k:"Explanatory research",s:()=>`A researcher wants to determine WHY ${pick(TOPICS)} rises in certain neighborhoods, seeking the cause.`},
+  {k:"Evaluation research",s:()=>`A researcher assesses whether a new ${pick(["diversion","mentoring","treatment","reentry"])} program actually reduced ${pick(TOPICS)}.`}]);
+  return {ch:"Ch 1",q:`${v.s()} By purpose, this is BEST classified as:`,correct:v.k,distractors:POOLS.purposeType.filter(x=>x!==v.k),r:"Exploratory (new topic), Descriptive (describes a trend), Explanatory (finds a cause), Evaluation (assesses a program)."}; }
+function g_pureApplied(){ const p=Math.random()<0.5; return {ch:"Ch 1",q:`${p?`A scholar conducts a study purely to advance criminological theory, with no specific problem to solve.`:`A department commissions a study specifically to fix its ${pick(["staffing","scheduling","retention","caseload"])} problem.`} This is:`,correct:p?"Pure (basic) research":"Applied (action) research",distractors:p?["Applied (action) research","Evaluation research","Exploratory research"]:["Pure (basic) research","Exploratory research","Descriptive research"],r:"Pure/basic advances theory; applied/action solves a specific problem."}; }
+function g_alternatives(){ const v=pick([{k:"Tradition or custom",s:`"We've always done it this way" is the justification.`},{k:"Authority",s:`A claim is accepted only because a well-known expert said so.`},{k:"Media",s:`A belief about crime comes mainly from sensational news coverage.`},{k:"Common sense",s:`A conclusion is reached because it "just seems obvious."`}]); return {ch:"Ch 1",q:`${v.s} This relies on which alternative to research?`,correct:v.k,distractors:POOLS.alternatives.filter(x=>x!==v.k),r:"The four alternatives: authority, tradition/custom, common sense, media."}; }
+function g_peerReview(){ return {ch:"Ch 1",q:`Knowledgeable researchers evaluate a colleague's manuscript and recommend whether it should be published. This quality-enhancing process is:`,correct:"Peer review",distractors:["Pyramiding","Conceptualization","Operationalization"],r:"Peer review = experts evaluating work and recommending publication."}; }
+
+function g_pyramiding(){ return {ch:"Ch 2",q:`A researcher uses the bibliography of ${pick(["a strong article","a key study","a cited paper"])} to find more sources, noticing the same works cited repeatedly. This is:`,correct:"Pyramiding",distractors:["Operationalization","Sampling","Triangulation"],r:"Pyramiding locates sources via bibliographies; repeated citations signal authority."}; }
+function g_conceptOp(){ const op=Math.random()<0.5; return {ch:"Ch 2",q:`${op?`Deciding HOW to actually measure a concept that has already been defined is:`:`Developing a precise definition of a concept before measuring it is:`}`,correct:op?"Operationalization":"Conceptualization",distractors:op?["Conceptualization","Interpretation","Analysis"]:["Operationalization","Interpretation","Sampling"],r:"Conceptualization = defining; operationalization = deciding how to measure."}; }
+function g_overreach(){ return {ch:"Ch 2",q:`A researcher claims their findings prove far more than the data actually support. The researcher has:`,correct:"Overreached the data",distractors:["Committed a spurious error","Violated temporal order","Created sampling bias"],r:"Interpreting findings beyond what they show = overreaching the data."}; }
+function g_processChar(){ const v=pick([{k:"Internally cyclical",s:`researchers often revisit steps they previously completed`},{k:"Externally cyclical",s:`findings frequently raise new questions for future researchers`},{k:"Generally linear",s:`the steps are usually completed in a set order`}]); return {ch:"Ch 2",q:`The research process is "${v.k.toLowerCase()}" because ${v.s}. Which characteristic is this?`,correct:v.k,distractors:["Internally cyclical","Externally cyclical","Generally linear"].filter(x=>x!==v.k),r:"Linear = set order; internally cyclical = revisiting steps; externally cyclical = findings spark new questions."}; }
+function g_firstSteps(){ return {ch:"Ch 2",q:`Which correctly orders the FIRST three steps of the research process?`,correct:"Ask a research question → Conduct a literature review → Refine the research question",distractors:["Define concepts → Ask a question → Collect data","Literature review → Ask a question → Design method","Ask a question → Collect data → Analyze data"],r:"Order: Ask → Review → Refine."}; }
+
+function g_confidAnon(){ const c=Math.random()<0.5; return {ch:"Ch 3",q:`${c?`A researcher knows each participant's identity but signs an agreement promising never to reveal it.`:`A researcher uses an anonymous drop box so they never know which participant submitted which response.`} This protection is:`,correct:c?"Confidentiality":"Anonymity",distractors:c?["Anonymity","Informed consent","Beneficence"]:["Confidentiality","Informed consent","Beneficence"],r:"Confidentiality = knows identity, won't reveal. Anonymity = cannot know identity."}; }
+function g_irb(){ const low=Math.random()<0.5; return {ch:"Ch 3",q:`${low?`A study uses an anonymous, minimal-risk online survey about ${pick(TOPICS)}.`:`A study requests highly personal, sensitive information that could substantially harm subjects.`} What level of IRB review is most likely?`,correct:low?"Expedited review":"Full review",distractors:low?["Full review","No review needed","Continuing review"]:["Expedited review","No review needed","Continuing review"],r:"Expedited = little potential harm; Full = substantial potential harm."}; }
+function g_ethicsViolation(){ const v=pick([{k:"Suppression",s:`A funder refuses to release findings that make its product look bad.`},{k:"Research fraud",s:`A researcher fabricates data that was never actually collected.`},{k:"Plagiarism",s:`A researcher presents another person's intellectual property as their own.`},{k:"Sponsorship bias",s:`A sponsor pressures a researcher to design the study to favor the sponsor's product.`},{k:"Deception",s:`A respected researcher lends credibility to an unscrupulously produced study.`}]); return {ch:"Ch 3",q:`${v.s} This is BEST described as:`,correct:v.k,distractors:shuffle(["Suppression","Research fraud","Plagiarism","Sponsorship bias","Deception"].filter(x=>x!==v.k)).slice(0,3),r:"Suppression (hiding findings), research fraud (fabrication), plagiarism (others' work as own), sponsorship bias (influencing design), deception (lending credibility to bad research)."}; }
+function g_vulnerable(){ const ex=pick(["children","the mentally ill","inmates"]); return {ch:"Ch 3",q:`In research ethics, ${ex} are an example of a:`,correct:"Vulnerable population",distractors:["Sampling frame","Cohort","Stratum"],r:"Vulnerable populations (children, mentally ill, inmates) need extra safeguards."}; }
+function g_consent(){ const vol=Math.random()<0.5; return {ch:"Ch 3",q:`${vol?`Consent given freely, with no threat or coercion,`:`Consent given after the subject is told what's expected and the risks involved,`} satisfies which requirement?`,correct:vol?"Voluntary":"Informed",distractors:vol?["Informed","Anonymous","Exhaustive"]:["Voluntary","Anonymous","Exhaustive"],r:"Voluntary = free to participate without threat. Informed = told what's expected and the risks."}; }
+
+function g_timeDim(){ const v=pick([{k:"Trend study",s:()=>`A researcher surveys a DIFFERENT random sample of residents every year for ${randInt(5,12)} years to track attitudes about ${pick(TOPICS)}.`},{k:"Panel study",s:()=>`A researcher follows the EXACT SAME ${randInt(100,400)} individuals, surveying them yearly for a decade.`},{k:"Cohort study",s:()=>`A researcher tracks everyone released from prison in ${randInt(2008,2018)} over time as a group.`},{k:"Cross-sectional study",s:()=>`A researcher collects data from a sample at a single point in time — a snapshot.`}]); return {ch:"Ch 4",q:`${v.s()} This is a:`,correct:v.k,distractors:POOLS.timeDim.filter(x=>x!==v.k),r:"Trend: different samples over time. Panel: same sample over time. Cohort: shared experience. Cross-sectional: one point in time."}; }
+function g_reasoning(){ const d=Math.random()<0.5; return {ch:"Ch 4",q:`${d?`A researcher begins with ${pick(["deterrence theory","strain theory","social bond theory"])}, then collects data to test whether it holds.`:`A researcher begins with field observations of ${pick(TOPICS)}, then builds a theory to explain the patterns.`} This reasoning is:`,correct:d?"Deductive reasoning":"Inductive reasoning",distractors:d?["Inductive reasoning","Spurious reasoning","Interpretive reasoning"]:["Deductive reasoning","Spurious reasoning","Interpretive reasoning"],r:"Deductive: theory → data. Inductive: data → theory."}; }
+function g_fallacy(){ const e=Math.random()<0.5; const grp=pick(GROUPS); return {ch:"Ch 4",q:`${e?`Observing that ${randInt(60,85)}% of ${grp} dropped out of school, a researcher concludes a SPECIFIC member must also be a dropout.`:`Based on one observed member of ${grp}, a researcher draws a conclusion about the ENTIRE group.`} This logical error is:`,correct:e?"Ecological fallacy":"Reductionism",distractors:e?["Reductionism","Spuriousness","Selection bias"]:["Ecological fallacy","Spuriousness","Selection bias"],r:"Ecological fallacy: individual prediction from group data. Reductionism: group prediction from an individual."}; }
+function g_qualQuant(){ const q=Math.random()<0.5; return {ch:"Ch 4",q:`${q?`A study measures variables numerically and assumes the social world can be understood objectively.`:`A study examines the meaning of behavior in a natural setting, from the subjects' perspective.`} This research is:`,correct:q?"Quantitative":"Qualitative",distractors:q?["Qualitative","Interpretive","Critical"]:["Quantitative","Positivist","Critical"],r:"Quantitative = numeric/objective. Qualitative = meaning/subjective."}; }
+function g_paradigm(){ return {ch:"Ch 4",q:`The paradigm assuming research is NOT value-free and that every researcher brings their own biases is:`,correct:"Critical",distractors:["Positivist","Interpretive","Quantitative"],r:"Critical: not value-free; positivist: empirical/causal; interpretive: meaning."}; }
+
+function g_causalRule(){ const v=pick([{k:"Temporal order",s:`requiring that the cause happened BEFORE the effect`},{k:"Correlation",s:`requiring that the two variables actually change together`},{k:"Lack of plausible alternative explanations",s:`requiring that all other reasonable causes be eliminated`}]); return {ch:"Ch 5",q:`Which causal rule involves ${v.s}?`,correct:v.k,distractors:["Temporal order","Correlation","Lack of plausible alternative explanations","Spuriousness"].filter(x=>x!==v.k).slice(0,3),r:"Three rules: temporal order (cause first), correlation (related), lack of plausible alternatives (rule out other causes)."}; }
+function g_spurious(){ const p=pick([["ice cream sales","drowning deaths","summer heat"],["number of fire trucks","fire damage","the size of the fire"],["shoe size","reading ability","a child's age"]]); return {ch:"Ch 5",q:`${cap(p[0])} and ${p[1]} rise together, but neither causes the other (${p[2]} drives both). Claiming one causes the other is a relationship that is:`,correct:"Spurious",distractors:["Negative","Temporal","Inverse"],r:"Spurious = false; a third variable explains the apparent link."}; }
+function g_correlationDir(){ const n=Math.random()<0.5; return {ch:"Ch 5",q:`${n?`As ${pick(["police patrols","study hours","supervision","job stability"])} increase, ${pick(["crime","exam failures","reoffending","arrests"])} decrease.`:`As ${pick(["unemployment","substance use","poverty"])} increases, ${pick(["crime","victimization","arrests"])} also increases.`} These variables are:`,correct:n?"Negatively correlated":"Positively correlated",distractors:n?["Positively correlated","Spuriously correlated","Not correlated"]:["Negatively correlated","Spuriously correlated","Not correlated"],r:"Same direction = positive; opposite directions = negative (inverse)."}; }
+function g_hardestRule(){ return {ch:"Ch 5",q:`Which causal requirement is often the MOST difficult to satisfy?`,correct:"Lack of plausible alternative explanations",distractors:["Correlation","Temporal order","Random assignment"],r:"Eliminating all other reasonable causes is typically the hardest."}; }
+
+function g_level(){ const v=pick([{k:"Nominal",s:()=>`recording each person's ${pick(["religion","race","type of crime","gender"])} with no ranking implied`},{k:"Ordinal",s:()=>`a ${pick(["risk","satisfaction","severity"])} scale labeled low / medium / high with unequal gaps`},{k:"Interval",s:()=>`${pick(["education in years","IQ score","temperature in Celsius"])}, with equal gaps but no true zero`},{k:"Ratio",s:()=>`${pick(["annual income in dollars","number of arrests","sentence length in months"])}, with equal gaps and a true zero`}]); return {ch:"Ch 6",q:`Measuring ${v.s()} is which level of measurement?`,correct:v.k,distractors:POOLS.levels.filter(x=>x!==v.k),r:"NOIR — Nominal (labels), Ordinal (ranked, unequal gaps), Interval (equal gaps, no true zero), Ratio (equal gaps + true zero)."}; }
+function g_validReliable(){ return {ch:"Ch 6",q:`A measure produces the SAME result every time but is measuring the WRONG thing. This measure is:`,correct:"Reliable but not valid",distractors:["Valid but not reliable","Both valid and reliable","Neither"],r:"Reliability = consistency; validity = accuracy. Can be consistently wrong."}; }
+function g_validityType(){ const v=pick([{k:"Criterion (predictive) validity",s:`checking whether a survey question about arrests matches official arrest records`},{k:"Content validity",s:`making sure a "social bonds" measure captures marriage, parenthood, AND friendship`},{k:"Face validity",s:`judging whether a measure simply appears to make sense on its surface`},{k:"Construct validity",s:`checking whether a measure relates to other theoretically-linked variables`}]); return {ch:"Ch 6",q:`A researcher is ${v.s}. Which type of validity is this?`,correct:v.k,distractors:POOLS.validity.filter(x=>x!==v.k),r:"Face (makes sense), Criterion (matches a direct measure), Content (every dimension), Construct (theoretically-linked variables)."}; }
+function g_reliabilityType(){ const v=pick([{k:"Test–retest reliability",s:`administering the SAME test to the SAME group twice to see if results match`},{k:"Inter-rater reliability",s:`having two observers code the same event and comparing whether they agree`},{k:"Split half reliability",s:`splitting a measure in half and giving each half to two similar groups`},{k:"Concurrent reliability",s:`comparing a new measure against a pre-established, accepted benchmark`}]); return {ch:"Ch 6",q:`A researcher assesses reliability by ${v.s}. This is:`,correct:v.k,distractors:POOLS.reliability.filter(x=>x!==v.k),r:"Test–retest (twice, same group), inter-rater (observers agree), split half (two halves match), concurrent (matches a benchmark)."}; }
+
+function g_variable(){ const t=pick([["children who experience abuse","adult abusive behavior"],["hours of supervision","reoffending"],["job training","employment after release"]]); const dv=Math.random()<0.5; return {ch:"Ch 7",q:`In the hypothesis "${t[0]} affects ${t[1]}," what is the ${dv?"DEPENDENT":"INDEPENDENT"} variable?`,correct:dv?cap(t[1]):cap(t[0]),distractors:shuffle([dv?cap(t[0]):cap(t[1]),"An intervening factor","The unit of analysis"]).slice(0,3),r:"Independent = the cause (first). Dependent = the effect (changes as a result)."}; }
+function g_intervening(){ return {ch:"Ch 7",q:`A variable that occurs BETWEEN the independent and dependent variables, and may change whether the IV affects the DV, is a(n):`,correct:"Intervening variable",distractors:["Dependent variable","Control variable","Attribute"],r:"An intervening variable intervenes in the causal chain between IV and DV."}; }
+function g_hypothesis(){ const n=Math.random()<0.5; return {ch:"Ch 7",q:`${n?`A predictive statement alleging NO plausible connection between two variables is the:`:`The hypothesis a researcher actually wants to confirm — alleging a plausible connection between variables — is the:`}`,correct:n?"Null hypothesis (Ho)":"Alternative hypothesis (Ha)",distractors:n?["Alternative hypothesis (Ha)","Research question","Operational definition"]:["Null hypothesis (Ho)","Research question","Operational definition"],r:"Ha alleges a connection (what's wanted); Ho alleges no connection (its opposite)."}; }
+function g_attribute(){ const m=Math.random()<0.5; return {ch:"Ch 7",q:`${m?`Survey answer options overlap so a respondent could honestly select two. Which attribute requirement is violated?`:`A survey's answer options leave out some possible responses. Which attribute requirement is violated?`}`,correct:m?"Mutual exclusivity":"Exhaustiveness",distractors:m?["Exhaustiveness","Reliability","Temporal order"]:["Mutual exclusivity","Reliability","Validity"],r:"Attributes must be exhaustive (all possibilities) and mutually exclusive (pick one and only one)."}; }
+function g_goodRQ(){ return {ch:"Ch 7",q:`Withrow says a good research question should be "disinteresting." This means the researcher should:`,correct:"Be indifferent to the outcome and never try to prove anything",distractors:["Find the topic boring","Avoid all controversial topics","Only study inexpensive questions"],r:"Disinteresting = indifferent to the outcome; led by evidence to the most logical conclusion."}; }
+
+function g_sampling(){ const v=pick([{k:"Systematic random sampling",s:()=>`selecting every ${pick([8,10,12,15,20])}th name from ${pick(ROSTERS)}`},{k:"Snowball sampling",s:()=>`asking each participant in a hidden population to refer others they know`},{k:"Convenience sampling",s:()=>`surveying whoever happens to be available at ${pick(PLACES)}`},{k:"Stratified random sampling",s:()=>`dividing the population into strata and randomly sampling from each one`},{k:"Cluster sampling",s:()=>`identifying natural groupings, randomly selecting some, then sampling cases within them`},{k:"Simple random sampling",s:()=>`giving every member an equal, non-zero chance and selecting directly at random`}]); return {ch:"Ch 8",q:`A researcher builds a sample by ${v.s()}. This is:`,correct:v.k,distractors:shuffle(POOLS.sampling.filter(x=>x!==v.k)).slice(0,3),r:"Systematic (every kth), snowball (referrals), convenience (available), stratified (strata then random), cluster (groupings then random), simple (direct equal-chance random)."}; }
+function g_probType(){ const p=Math.random()<0.5; return {ch:"Ch 8",q:`${p?`A sampling method relies on RANDOM selection and lets the researcher predict about the population from the sample.`:`A sampling method does NOT use random selection and cannot predict about the population.`} This is:`,correct:p?"Probability sampling":"Non-probability sampling",distractors:p?["Non-probability sampling","Convenience sampling","Snowball sampling"]:["Probability sampling","Simple random sampling","Systematic sampling"],r:"Probability uses random selection and allows prediction; non-probability does not."}; }
+function g_clt(){ return {ch:"Ch 8",q:`The principle that numerous samples from a population produce about the same, normally-distributed result — the scientific basis of sampling — is the:`,correct:"Central limit theorem",distractors:["Law of large numbers","Sampling frame","Standard error rule"],r:"The central limit theorem underlies why sampling works."}; }
+function g_samplingTerms(){ const v=pick([{k:"Census",s:`collecting information from an ENTIRE population`},{k:"Sampling frame",s:`a list of all the individual components of a population`},{k:"Selection bias",s:`any process that systematically skews who gets selected into a sample`},{k:"Random sampling error",s:`the difference between sample results and what the full population would have shown`}]); return {ch:"Ch 8",q:`Which term describes ${v.s}?`,correct:v.k,distractors:shuffle(["Census","Sampling frame","Selection bias","Random sampling error","Sample","Cohort"].filter(x=>x!==v.k)).slice(0,3),r:"Census = entire population; sampling frame = list of components; selection bias = skewed selection; random sampling error = sample-vs-population gap."}; }
+
+const GENERATORS={ "Ch 1":[g_purpose,g_pureApplied,g_alternatives,g_peerReview],"Ch 2":[g_pyramiding,g_conceptOp,g_overreach,g_processChar,g_firstSteps],"Ch 3":[g_confidAnon,g_irb,g_ethicsViolation,g_vulnerable,g_consent],"Ch 4":[g_timeDim,g_reasoning,g_fallacy,g_qualQuant,g_paradigm],"Ch 5":[g_causalRule,g_spurious,g_correlationDir,g_hardestRule],"Ch 6":[g_level,g_validReliable,g_validityType,g_reliabilityType],"Ch 7":[g_variable,g_intervening,g_hypothesis,g_attribute,g_goodRQ],"Ch 8":[g_sampling,g_probType,g_clt,g_samplingTerms] };
+
+function genQuestion(ch){ const raw=pick(GENERATORS[ch])(); let opts=[...new Set([raw.correct,...raw.distractors])].slice(0,4); while(opts.length<4){opts.push("None of the above");opts=[...new Set(opts)];} const sh=shuffle(opts); return {ch:raw.ch||ch,q:raw.q,opts:sh,correct:sh.indexOf(raw.correct),r:raw.r}; }
+
+/* ===== STATE / PERSISTENCE ===== */
+const STORE_KEY='ccj6704_adaptive_v2';
+let state=loadState();
+function loadState(){ try{const s=JSON.parse(localStorage.getItem(STORE_KEY));if(s&&s.chapterStats)return s;}catch(e){} const f={chapterStats:{},examsTaken:0,scoreSum:0,cardsSeen:0}; CHAPTERS.forEach(c=>f.chapterStats[c]={correct:0,total:0}); return f; }
+function saveState(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){} }
+function hardReset(){ if(!confirm('Reset all progress?'))return; localStorage.removeItem(STORE_KEY); state=loadState(); renderDashboard(); alert('Progress reset.'); }
+function showTab(id,btn){ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); document.getElementById(id).classList.add('active'); btn.classList.add('active'); if(id==='dashboard')renderDashboard(); }
+function chapterPct(ch){ const s=state.chapterStats[ch]; return s.total?Math.round(s.correct/s.total*100):null; }
+function masteryColor(p){ return p==null?'#3a3a4e':p>=80?'#2a7a4a':p>=60?'#b0902a':'#9a3030'; }
+function renderDashboard(){ document.getElementById('masteryBars').innerHTML=CHAPTERS.map(ch=>{const p=chapterPct(ch),s=state.chapterStats[ch],w=p==null?0:p,label=p==null?'—':`${p}% (${s.correct}/${s.total})`;return `<div class="mastery-row"><div class="mastery-name">${ch}</div><div class="mastery-track"><div class="mastery-fill" style="width:${w}%;background:${masteryColor(p)};"></div></div><div class="mastery-score">${label}</div></div>`;}).join('');
+  document.getElementById('examsTaken').textContent=state.examsTaken; document.getElementById('avgScore').textContent=state.examsTaken?Math.round(state.scoreSum/state.examsTaken)+'%':'—'; document.getElementById('cardsSeen').textContent=state.cardsSeen;
+  const rec=document.getElementById('recommendation'),tested=CHAPTERS.filter(c=>state.chapterStats[c].total>0);
+  if(!tested.length){rec.innerHTML="Take your first exam to unlock mastery tracking and weak-point targeting. Head to the <strong>Exam</strong> tab and run an even-coverage diagnostic.";}
+  else{const weak=tested.filter(c=>chapterPct(c)<60).sort((a,b)=>chapterPct(a)-chapterPct(b)),mid=tested.filter(c=>{const p=chapterPct(c);return p>=60&&p<80;});
+    if(weak.length)rec.innerHTML=`<strong>Cram first (under 60%):</strong> ${weak.join(', ')}.<br>Run a <strong>Target Weak Points</strong> exam, then study those flashcards.`;
+    else if(mid.length)rec.innerHTML=`Weak spots cleared. <strong>Shore up (60–79%):</strong> ${mid.join(', ')}.`;
+    else rec.innerHTML=`Every tested chapter is at 80%+ 🎉 Do a light all-chapter review pass to stay sharp.`;} }
+
+/* ===== EXAM ===== */
+let examMode='even',examLen=20,examQs=[],examAnswers=[],examSubmitted=false;
+function setMode(m){examMode=m;document.getElementById('modeEven').classList.toggle('selected',m==='even');document.getElementById('modeWeak').classList.toggle('selected',m==='weak');}
+function setLen(n,btn){examLen=n;document.querySelectorAll('.len-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');}
+function chapterTargets(){ let w={}; if(examMode==='weak'){const tested=CHAPTERS.filter(c=>state.chapterStats[c].total>0); if(tested.length){CHAPTERS.forEach(c=>{const p=chapterPct(c);w[c]=p==null?2:p<60?5:p<80?3:1;});}else CHAPTERS.forEach(c=>w[c]=1);}else CHAPTERS.forEach(c=>w[c]=1); let pool=[];CHAPTERS.forEach(c=>{for(let i=0;i<w[c];i++)pool.push(c);}); const t={};CHAPTERS.forEach(c=>t[c]=0); for(let i=0;i<examLen;i++)t[pick(pool)]++; return t; }
+function buildExamQuestions(){ const t=chapterTargets(); let qs=[]; CHAPTERS.forEach(c=>{for(let i=0;i<t[c];i++)qs.push(genQuestion(c));}); return shuffle(qs).slice(0,examLen); }
+function startExam(){ examQs=buildExamQuestions(); examAnswers=new Array(examQs.length).fill(null); examSubmitted=false; document.getElementById('examSetup').style.display='none'; document.getElementById('examRun').style.display='block'; document.getElementById('results').classList.remove('show'); document.getElementById('postExamBtns').style.display='none'; document.getElementById('submitBtn').style.display='inline-block'; document.getElementById('submitBtn').disabled=true; document.getElementById('submitBtn').textContent='Submit Exam'; renderQuiz(); window.scrollTo({top:0,behavior:'smooth'}); }
+function renderQuiz(){ const L=['A','B','C','D']; document.getElementById('quizBody').innerHTML=examQs.map((item,qi)=>`<div class="q-card" id="q${qi}"><div class="q-meta"><span class="q-num">Q${qi+1}</span><span class="q-ch">${item.ch}</span></div><div class="q-text">${item.q}</div>${item.opts.map((o,oi)=>`<button class="opt" data-q="${qi}" data-o="${oi}" onclick="pickOpt(${qi},${oi})"><span class="ltr">${L[oi]}</span>${o}</button>`).join('')}<div class="rationale" id="rat${qi}" style="display:none;"></div></div>`).join(''); updateProgress(); }
+function pickOpt(qi,oi){ if(examSubmitted)return; examAnswers[qi]=oi; document.querySelectorAll(`.opt[data-q="${qi}"]`).forEach(b=>b.classList.toggle('selected',+b.dataset.o===oi)); updateProgress(); }
+function updateProgress(){ const a=examAnswers.filter(x=>x!==null).length; document.getElementById('pbar').style.width=(a/examQs.length*100)+'%'; document.getElementById('plabel').textContent=`${a} / ${examQs.length}`; document.getElementById('submitBtn').disabled=a<examQs.length; if(a===examQs.length)document.getElementById('warn').classList.remove('show'); }
+function submitExam(){ const a=examAnswers.filter(x=>x!==null).length; if(a<examQs.length){document.getElementById('warn').classList.add('show');return;} examSubmitted=true; document.getElementById('submitBtn').style.display='none'; const L=['A','B','C','D']; let correct=0; const ecs={};
+  examQs.forEach((item,qi)=>{ecs[item.ch]=ecs[item.ch]||{c:0,t:0};ecs[item.ch].t++;const ok=examAnswers[qi]===item.correct;if(ok){correct++;ecs[item.ch].c++;}document.querySelectorAll(`.opt[data-q="${qi}"]`).forEach(b=>{const oi=+b.dataset.o;b.style.cursor='default';b.classList.remove('selected');if(oi===item.correct)b.classList.add('correct');else if(oi===examAnswers[qi])b.classList.add('wrong');});const rat=document.getElementById('rat'+qi);rat.style.display='block';rat.innerHTML=`${ok?'✅ Correct.':'❌ You picked '+L[examAnswers[qi]]+'. Correct: '+L[item.correct]+'.'} ${item.r}`;});
+  Object.keys(ecs).forEach(ch=>{state.chapterStats[ch].correct+=ecs[ch].c;state.chapterStats[ch].total+=ecs[ch].t;});
+  const pct=Math.round(correct/examQs.length*100);state.examsTaken++;state.scoreSum+=pct;saveState();
+  const rows=CHAPTERS.map(ch=>{const s=ecs[ch];if(!s)return null;const p=Math.round(s.c/s.t*100);return{ch,c:s.c,t:s.t,p,color:masteryColor(p)};}).filter(Boolean);
+  const weak=rows.filter(r=>r.p<60).map(r=>r.ch),mid=rows.filter(r=>r.p>=60&&r.p<80).map(r=>r.ch);
+  let verdict=pct>=80?`<strong>Strong run.</strong> `:pct>=60?`<strong>Solid base, clear gaps.</strong> `:`<strong>Good — now you know where to aim.</strong> `;
+  if(weak.length)verdict+=`<br><br><strong>Weak (under 60%):</strong> ${weak.join(', ')}. Tap "Study My Weak Cards" below.`;
+  if(mid.length)verdict+=`<br><strong>Shore up (60–79%):</strong> ${mid.join(', ')}.`;
+  if(!weak.length&&!mid.length)verdict+=`Every chapter on this exam hit 80%+. Switch to even coverage to keep all 8 sharp.`;
+  const res=document.getElementById('results');res.classList.add('show');
+  res.innerHTML=`<div class="score-big">${pct}%</div><div class="score-sub">${correct} of ${examQs.length} correct · saved to your dashboard</div><div>${rows.map(r=>`<div class="mastery-row"><div class="mastery-name">${r.ch}</div><div class="mastery-track"><div class="mastery-fill" style="width:${r.p}%;background:${r.color};"></div></div><div class="mastery-score">${r.c}/${r.t}</div></div>`).join('')}</div><div class="verdict">${verdict}</div>`;
+  document.getElementById('postExamBtns').style.display='flex';res.scrollIntoView({behavior:'smooth'}); }
+function backToSetup(){ document.getElementById('examRun').style.display='none'; document.getElementById('examSetup').style.display='block'; const tested=CHAPTERS.filter(c=>state.chapterStats[c].total>0); if(tested.some(c=>chapterPct(c)<80))setMode('weak');else setMode('even'); window.scrollTo({top:0,behavior:'smooth'}); }
+
+/* ===== FLASHCARDS ===== */
+let fcDeck=[],fcIdx=0,fcFlipped=false;
+function loadAllCards(){ fcDeck=shuffle(CARDS);fcIdx=0;document.getElementById('fcMeta').textContent='All chapters · '+fcDeck.length+' cards';showCard();switchToFlashTab(); }
+function reviewWeakCards(){ const tested=CHAPTERS.filter(c=>state.chapterStats[c].total>0),weak=tested.filter(c=>chapterPct(c)<60),focus=weak.length?weak:tested.filter(c=>chapterPct(c)<80),chSet=focus.length?focus:CHAPTERS; fcDeck=shuffle(CARDS.filter(c=>chSet.includes(c.ch)));fcIdx=0; document.getElementById('fcMeta').textContent=(focus.length?('Weak points: '+chSet.join(', ')):'All chapters')+' · '+fcDeck.length+' cards'; showCard();switchToFlashTab(); }
+function switchToFlashTab(){ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('flashcards').classList.add('active');document.querySelectorAll('.tab')[2].classList.add('active');window.scrollTo({top:0,behavior:'smooth'}); }
+function showCard(){ if(!fcDeck.length)fcDeck=shuffle(CARDS);const c=fcDeck[fcIdx];document.getElementById('fcChF').textContent=c.ch;document.getElementById('fcChB').textContent=c.ch;document.getElementById('fcFront').textContent=c.q;document.getElementById('fcBack').textContent=c.a;document.getElementById('fcCard').classList.remove('flipped');fcFlipped=false; }
+function flipCard(){ fcFlipped=!fcFlipped;document.getElementById('fcCard').classList.toggle('flipped',fcFlipped); }
+function nextCard(){ state.cardsSeen++;saveState();fcIdx=(fcIdx+1)%fcDeck.length;showCard(); }
+function prevCard(){ fcIdx=(fcIdx-1+fcDeck.length)%fcDeck.length;showCard(); }
+
+/* ===== INIT ===== */
+renderDashboard();loadAllCards();
+document.getElementById('flashcards').classList.remove('active');document.querySelectorAll('.tab')[2].classList.remove('active');
+document.getElementById('dashboard').classList.add('active');document.querySelectorAll('.tab')[0].classList.add('active');
+document.addEventListener('keydown',e=>{if(document.getElementById('flashcards').classList.contains('active')){if(e.key===' '||e.key==='Enter'){e.preventDefault();flipCard();}if(e.key==='ArrowRight')nextCard();if(e.key==='ArrowLeft')prevCard();}});
+</script>
+</body>
+</html>
